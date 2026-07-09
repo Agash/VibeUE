@@ -93,6 +93,7 @@ public class VibeUE : ModuleRules
 				"Foliage",                // Required by LandscapeEdit.h (InstancedFoliageActor)
 				"ModelViewViewModel",     // For MVVM ViewModel base classes (UMVVMViewModelBase)
 				"ModelViewViewModelBlueprint", // For MVVM Blueprint View and bindings
+				"Chooser",                // For UChooserTable, UChooserSignature, Chooser column/result types
 				"StateTreeModule",        // For UStateTree, UStateTreeEditorData, StateTree core types
 				"StateTreeEditorModule",  // For FStateTreeCompiler, UStateTreeState, StateTree editor types
 				"PropertyBindingUtils",    // For FPropertyBindingBindableStructDescriptor (base of FStateTreeBindableStructDesc)
