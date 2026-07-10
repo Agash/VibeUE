@@ -72,6 +72,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "PoseSearch",
+			"Enabled": true
+		},
+		{
 			"Name": "GeometryCollectionPlugin",
 			"Enabled": true
 		},

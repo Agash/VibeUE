@@ -99,6 +99,7 @@ public class VibeUE : ModuleRules
 				"AnimationBlueprintLibrary", // Public header pulled in transitively by AnimationModifier.h
 				"AnimationModifiers",     // For UAnimationModifier::ApplyToAnimationSequence + AssetUserData
 				"AnimationModifierLibrary", // For UEncodeRootBoneModifier / MotionExtractor / DistanceCurve modifiers
+				"PoseSearch",             // For UPoseSearchDatabase / UPoseSearchSchema (Motion Matching authoring)
 				"StateTreeModule",        // For UStateTree, UStateTreeEditorData, StateTree core types
 				"StateTreeEditorModule",  // For FStateTreeCompiler, UStateTreeState, StateTree editor types
 				"PropertyBindingUtils",    // For FPropertyBindingBindableStructDescriptor (base of FStateTreeBindableStructDesc)
