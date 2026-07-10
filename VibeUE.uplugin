@@ -64,6 +64,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "SmartObjects",
+			"Enabled": true
+		},
+		{
 			"Name": "GeometryCollectionPlugin",
 			"Enabled": true
 		},
