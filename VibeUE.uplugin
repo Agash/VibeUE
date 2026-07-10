@@ -68,6 +68,10 @@
 			"Enabled": true
 		},
 		{
+			"Name": "AnimationModifierLibrary",
+			"Enabled": true
+		},
+		{
 			"Name": "GeometryCollectionPlugin",
 			"Enabled": true
 		},

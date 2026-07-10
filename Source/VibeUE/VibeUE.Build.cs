@@ -96,6 +96,9 @@ public class VibeUE : ModuleRules
 				"Chooser",                // For UChooserTable, UChooserSignature, Chooser column/result types
 				"Mover",                  // For UMoverComponent, UBaseMovementMode, movement-mode transitions
 				"SmartObjectsModule",     // For USmartObjectDefinition, USmartObjectComponent, slot definitions
+				"AnimationBlueprintLibrary", // Public header pulled in transitively by AnimationModifier.h
+				"AnimationModifiers",     // For UAnimationModifier::ApplyToAnimationSequence + AssetUserData
+				"AnimationModifierLibrary", // For UEncodeRootBoneModifier / MotionExtractor / DistanceCurve modifiers
 				"StateTreeModule",        // For UStateTree, UStateTreeEditorData, StateTree core types
 				"StateTreeEditorModule",  // For FStateTreeCompiler, UStateTreeState, StateTree editor types
 				"PropertyBindingUtils",    // For FPropertyBindingBindableStructDescriptor (base of FStateTreeBindableStructDesc)
