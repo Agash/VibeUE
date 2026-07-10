@@ -17,7 +17,9 @@
 #include "Animation/AnimBlueprint.h"
 #include "AnimGraphNode_MotionMatching.h"
 #include "AnimGraphNode_PoseSearchHistoryCollector.h"
+#include "AnimationGraphSchema.h"
 #include "EdGraph/EdGraph.h"
+#include "EdGraph/EdGraphPin.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPoseSearchService, Log, All);
@@ -308,6 +310,113 @@ FString UPoseSearchService::AddPoseHistoryNode(const FString& AnimBlueprintPath,
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(AnimBlueprint);
 	UE_LOG(LogPoseSearchService, Log, TEXT("AddPoseHistoryNode: added to %s/%s"), *AnimBlueprintPath, *GraphName);
 	return NewNode->NodeGuid.ToString();
+}
+
+namespace
+{
+	/** Return the first pose pin on a node in the given direction, or nullptr. */
+	UEdGraphPin* FindPosePin(UEdGraphNode* Node, EEdGraphPinDirection Direction)
+	{
+		for (UEdGraphPin* Pin : Node->Pins)
+		{
+			if (Pin && Pin->Direction == Direction && UAnimationGraphSchema::IsPosePin(Pin->PinType))
+			{
+				return Pin;
+			}
+		}
+		return nullptr;
+	}
+}
+
+bool UPoseSearchService::SetupMotionMatchingLocomotion(const FString& AnimBlueprintPath, const FString& GraphName, const FString& DatabasePath)
+{
+	UAnimBlueprint* AnimBlueprint = LoadObject<UAnimBlueprint>(nullptr, *AnimBlueprintPath);
+	if (!AnimBlueprint)
+	{
+		UE_LOG(LogPoseSearchService, Warning, TEXT("SetupMotionMatchingLocomotion: AnimBlueprint not found: %s"), *AnimBlueprintPath);
+		return false;
+	}
+	UEdGraph* Graph = FindAnimGraphByName(AnimBlueprint, GraphName);
+	if (!Graph)
+	{
+		UE_LOG(LogPoseSearchService, Warning, TEXT("SetupMotionMatchingLocomotion: graph '%s' not found"), *GraphName);
+		return false;
+	}
+	UPoseSearchDatabase* Database = LoadObject<UPoseSearchDatabase>(nullptr, *DatabasePath);
+	if (!Database)
+	{
+		UE_LOG(LogPoseSearchService, Warning, TEXT("SetupMotionMatchingLocomotion: database not found: %s"), *DatabasePath);
+		return false;
+	}
+
+	// Motion Matching node (set database via reflection — Node/Database are private on the graph node).
+	FGraphNodeCreator<UAnimGraphNode_MotionMatching> MMCreator(*Graph);
+	UAnimGraphNode_MotionMatching* MMNode = MMCreator.CreateNode();
+	MMNode->NodePosX = 300; MMNode->NodePosY = 0;
+	if (FStructProperty* NodeProp = FindFProperty<FStructProperty>(MMNode->GetClass(), TEXT("Node")))
+	{
+		void* NodePtr = NodeProp->ContainerPtrToValuePtr<void>(MMNode);
+		if (FObjectPropertyBase* DbProp = FindFProperty<FObjectPropertyBase>(NodeProp->Struct, TEXT("Database")))
+		{
+			DbProp->SetObjectPropertyValue(DbProp->ContainerPtrToValuePtr<void>(NodePtr), Database);
+		}
+	}
+	MMCreator.Finalize();
+
+	// Pose History node (public Node member) — generate trajectory internally so no trajectory component is needed.
+	FGraphNodeCreator<UAnimGraphNode_PoseSearchHistoryCollector> PHCreator(*Graph);
+	UAnimGraphNode_PoseSearchHistoryCollector* PHNode = PHCreator.CreateNode();
+	PHNode->NodePosX = 600; PHNode->NodePosY = 0;
+	// Node/bGenerateTrajectory are private on the graph node — set via reflection.
+	if (FStructProperty* PHNodeProp = FindFProperty<FStructProperty>(PHNode->GetClass(), TEXT("Node")))
+	{
+		void* PHNodePtr = PHNodeProp->ContainerPtrToValuePtr<void>(PHNode);
+		if (FBoolProperty* GenProp = FindFProperty<FBoolProperty>(PHNodeProp->Struct, TEXT("bGenerateTrajectory")))
+		{
+			GenProp->SetPropertyValue(GenProp->ContainerPtrToValuePtr<void>(PHNodePtr), true);
+		}
+	}
+	PHCreator.Finalize();
+
+	// Find the graph's output pose node: a node that has an input pose pin but no output pose pin.
+	UEdGraphNode* OutputNode = nullptr;
+	for (UEdGraphNode* Node : Graph->Nodes)
+	{
+		if (Node == MMNode || Node == PHNode)
+		{
+			continue;
+		}
+		if (FindPosePin(Node, EGPD_Input) && !FindPosePin(Node, EGPD_Output))
+		{
+			OutputNode = Node;
+			break;
+		}
+	}
+	if (!OutputNode)
+	{
+		UE_LOG(LogPoseSearchService, Warning, TEXT("SetupMotionMatchingLocomotion: could not find output pose node in '%s'"), *GraphName);
+		return false;
+	}
+
+	UEdGraphPin* MMOut = FindPosePin(MMNode, EGPD_Output);
+	UEdGraphPin* PHIn  = FindPosePin(PHNode, EGPD_Input);
+	UEdGraphPin* PHOut = FindPosePin(PHNode, EGPD_Output);
+	UEdGraphPin* RootIn = FindPosePin(OutputNode, EGPD_Input);
+	if (!MMOut || !PHIn || !PHOut || !RootIn)
+	{
+		UE_LOG(LogPoseSearchService, Warning, TEXT("SetupMotionMatchingLocomotion: missing pose pins (MMOut=%d PHIn=%d PHOut=%d RootIn=%d)"),
+			MMOut != nullptr, PHIn != nullptr, PHOut != nullptr, RootIn != nullptr);
+		return false;
+	}
+
+	// Wire MotionMatching -> PoseHistory -> Output (replacing whatever fed the output).
+	RootIn->BreakAllPinLinks();
+	MMOut->MakeLinkTo(PHIn);
+	PHOut->MakeLinkTo(RootIn);
+
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(AnimBlueprint);
+	UE_LOG(LogPoseSearchService, Log, TEXT("SetupMotionMatchingLocomotion: wired MM->PoseHistory->Output in %s/%s (db %s)"), *AnimBlueprintPath, *GraphName, *DatabasePath);
+	return true;
 }
 
 // ---- Save -------------------------------------------------------------------------------------

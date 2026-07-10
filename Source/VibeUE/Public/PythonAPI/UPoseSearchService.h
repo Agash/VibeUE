@@ -132,6 +132,19 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (AICallable), Category = "VibeUE|PoseSearch")
 	static FString AddPoseHistoryNode(const FString& AnimBlueprintPath, const FString& GraphName, float PosX = 0.f, float PosY = 0.f);
 
+	/**
+	 * One-call Motion Matching locomotion setup for a graph: creates a Motion Matching node (searching
+	 * the database) and a Pose History node (with bGenerateTrajectory=true, so no external trajectory
+	 * component is needed), then wires Motion Matching -> Pose History -> the graph's output pose,
+	 * replacing whatever previously fed the output. Compile the Blueprint afterwards.
+	 * @param AnimBlueprintPath Content path of the Animation Blueprint.
+	 * @param GraphName Name of the graph to build in (e.g. "AnimGraph").
+	 * @param DatabasePath Content path of the PoseSearch database.
+	 * @return True on success.
+	 */
+	UFUNCTION(BlueprintCallable, meta = (AICallable), Category = "VibeUE|PoseSearch")
+	static bool SetupMotionMatchingLocomotion(const FString& AnimBlueprintPath, const FString& GraphName, const FString& DatabasePath);
+
 	// ---- Save -------------------------------------------------------------------------------------
 
 	/**
