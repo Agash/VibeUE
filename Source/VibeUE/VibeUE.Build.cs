@@ -100,6 +100,7 @@ public class VibeUE : ModuleRules
 				"AnimationModifiers",     // For UAnimationModifier::ApplyToAnimationSequence + AssetUserData
 				"AnimationModifierLibrary", // For UEncodeRootBoneModifier / MotionExtractor / DistanceCurve modifiers
 				"PoseSearch",             // For UPoseSearchDatabase / UPoseSearchSchema (Motion Matching authoring)
+				"PoseSearchEditor",       // For UAnimGraphNode_MotionMatching / PoseSearchHistoryCollector graph nodes
 				"StateTreeModule",        // For UStateTree, UStateTreeEditorData, StateTree core types
 				"StateTreeEditorModule",  // For FStateTreeCompiler, UStateTreeState, StateTree editor types
 				"PropertyBindingUtils",    // For FPropertyBindingBindableStructDescriptor (base of FStateTreeBindableStructDesc)

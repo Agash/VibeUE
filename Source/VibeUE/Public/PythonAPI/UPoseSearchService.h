@@ -104,6 +104,34 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (AICallable), Category = "VibeUE|PoseSearch")
 	static TArray<FString> ListDatabaseAssets(const FString& DatabasePath);
 
+	// ---- Anim graph nodes -------------------------------------------------------------------------
+
+	/**
+	 * Adds a Motion Matching anim node to a graph in an Animation Blueprint, set to search a database.
+	 * Wire its Pose input to a Pose History node and connect its result toward the output pose.
+	 * @param AnimBlueprintPath Content path of the Animation Blueprint.
+	 * @param GraphName Name of the graph to add the node to (e.g. "AnimGraph").
+	 * @param DatabasePath Content path of the PoseSearch database the node searches.
+	 * @param PosX Node X position in the graph editor.
+	 * @param PosY Node Y position in the graph editor.
+	 * @return The new node's GUID string, or empty on failure.
+	 */
+	UFUNCTION(BlueprintCallable, meta = (AICallable), Category = "VibeUE|PoseSearch")
+	static FString AddMotionMatchingNode(const FString& AnimBlueprintPath, const FString& GraphName, const FString& DatabasePath, float PosX = 0.f, float PosY = 0.f);
+
+	/**
+	 * Adds a Pose History (pose search history collector) anim node to a graph — records recent pose
+	 * and trajectory so a Motion Matching node can build its query. Insert it as a pass-through before
+	 * the Motion Matching node.
+	 * @param AnimBlueprintPath Content path of the Animation Blueprint.
+	 * @param GraphName Name of the graph to add the node to.
+	 * @param PosX Node X position in the graph editor.
+	 * @param PosY Node Y position in the graph editor.
+	 * @return The new node's GUID string, or empty on failure.
+	 */
+	UFUNCTION(BlueprintCallable, meta = (AICallable), Category = "VibeUE|PoseSearch")
+	static FString AddPoseHistoryNode(const FString& AnimBlueprintPath, const FString& GraphName, float PosX = 0.f, float PosY = 0.f);
+
 	// ---- Save -------------------------------------------------------------------------------------
 
 	/**

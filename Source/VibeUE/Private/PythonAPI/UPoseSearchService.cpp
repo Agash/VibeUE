@@ -14,6 +14,11 @@
 #include "EditorAssetLibrary.h"
 #include "UObject/Package.h"
 #include "Misc/PackageName.h"
+#include "Animation/AnimBlueprint.h"
+#include "AnimGraphNode_MotionMatching.h"
+#include "AnimGraphNode_PoseSearchHistoryCollector.h"
+#include "EdGraph/EdGraph.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPoseSearchService, Log, All);
 
@@ -213,6 +218,96 @@ TArray<FString> UPoseSearchService::ListDatabaseAssets(const FString& DatabasePa
 		Result.Add(Asset ? Asset->GetName() : TEXT("<null>"));
 	}
 	return Result;
+}
+
+// ---- Anim graph nodes -------------------------------------------------------------------------
+
+namespace
+{
+	UEdGraph* FindAnimGraphByName(UAnimBlueprint* AnimBlueprint, const FString& GraphName)
+	{
+		TArray<UEdGraph*> AllGraphs;
+		AnimBlueprint->GetAllGraphs(AllGraphs);
+		for (UEdGraph* Graph : AllGraphs)
+		{
+			if (Graph && Graph->GetName() == GraphName)
+			{
+				return Graph;
+			}
+		}
+		return nullptr;
+	}
+}
+
+FString UPoseSearchService::AddMotionMatchingNode(const FString& AnimBlueprintPath, const FString& GraphName, const FString& DatabasePath, float PosX, float PosY)
+{
+	UAnimBlueprint* AnimBlueprint = LoadObject<UAnimBlueprint>(nullptr, *AnimBlueprintPath);
+	if (!AnimBlueprint)
+	{
+		UE_LOG(LogPoseSearchService, Warning, TEXT("AddMotionMatchingNode: AnimBlueprint not found: %s"), *AnimBlueprintPath);
+		return FString();
+	}
+	UEdGraph* TargetGraph = FindAnimGraphByName(AnimBlueprint, GraphName);
+	if (!TargetGraph)
+	{
+		UE_LOG(LogPoseSearchService, Warning, TEXT("AddMotionMatchingNode: graph '%s' not found"), *GraphName);
+		return FString();
+	}
+
+	FGraphNodeCreator<UAnimGraphNode_MotionMatching> NodeCreator(*TargetGraph);
+	UAnimGraphNode_MotionMatching* NewNode = NodeCreator.CreateNode();
+	NewNode->NodePosX = static_cast<int32>(PosX);
+	NewNode->NodePosY = static_cast<int32>(PosY);
+
+	if (!DatabasePath.IsEmpty())
+	{
+		if (UPoseSearchDatabase* Database = LoadObject<UPoseSearchDatabase>(nullptr, *DatabasePath))
+		{
+			// UAnimGraphNode_MotionMatching::Node is private but reflected — set Node.Database via FProperty.
+			if (FStructProperty* NodeProp = FindFProperty<FStructProperty>(NewNode->GetClass(), TEXT("Node")))
+			{
+				void* NodePtr = NodeProp->ContainerPtrToValuePtr<void>(NewNode);
+				if (FObjectPropertyBase* DbProp = FindFProperty<FObjectPropertyBase>(NodeProp->Struct, TEXT("Database")))
+				{
+					DbProp->SetObjectPropertyValue(DbProp->ContainerPtrToValuePtr<void>(NodePtr), Database);
+				}
+			}
+		}
+		else
+		{
+			UE_LOG(LogPoseSearchService, Warning, TEXT("AddMotionMatchingNode: database not found: %s"), *DatabasePath);
+		}
+	}
+
+	NodeCreator.Finalize();
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(AnimBlueprint);
+	UE_LOG(LogPoseSearchService, Log, TEXT("AddMotionMatchingNode: added to %s/%s (db %s)"), *AnimBlueprintPath, *GraphName, *DatabasePath);
+	return NewNode->NodeGuid.ToString();
+}
+
+FString UPoseSearchService::AddPoseHistoryNode(const FString& AnimBlueprintPath, const FString& GraphName, float PosX, float PosY)
+{
+	UAnimBlueprint* AnimBlueprint = LoadObject<UAnimBlueprint>(nullptr, *AnimBlueprintPath);
+	if (!AnimBlueprint)
+	{
+		UE_LOG(LogPoseSearchService, Warning, TEXT("AddPoseHistoryNode: AnimBlueprint not found: %s"), *AnimBlueprintPath);
+		return FString();
+	}
+	UEdGraph* TargetGraph = FindAnimGraphByName(AnimBlueprint, GraphName);
+	if (!TargetGraph)
+	{
+		UE_LOG(LogPoseSearchService, Warning, TEXT("AddPoseHistoryNode: graph '%s' not found"), *GraphName);
+		return FString();
+	}
+
+	FGraphNodeCreator<UAnimGraphNode_PoseSearchHistoryCollector> NodeCreator(*TargetGraph);
+	UAnimGraphNode_PoseSearchHistoryCollector* NewNode = NodeCreator.CreateNode();
+	NewNode->NodePosX = static_cast<int32>(PosX);
+	NewNode->NodePosY = static_cast<int32>(PosY);
+	NodeCreator.Finalize();
+	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(AnimBlueprint);
+	UE_LOG(LogPoseSearchService, Log, TEXT("AddPoseHistoryNode: added to %s/%s"), *AnimBlueprintPath, *GraphName);
+	return NewNode->NodeGuid.ToString();
 }
 
 // ---- Save -------------------------------------------------------------------------------------
