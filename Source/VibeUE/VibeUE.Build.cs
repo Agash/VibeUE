@@ -94,6 +94,7 @@ public class VibeUE : ModuleRules
 				"ModelViewViewModel",     // For MVVM ViewModel base classes (UMVVMViewModelBase)
 				"ModelViewViewModelBlueprint", // For MVVM Blueprint View and bindings
 				"Chooser",                // For UChooserTable, UChooserSignature, Chooser column/result types
+				"Mover",                  // For UMoverComponent, UBaseMovementMode, movement-mode transitions
 				"StateTreeModule",        // For UStateTree, UStateTreeEditorData, StateTree core types
 				"StateTreeEditorModule",  // For FStateTreeCompiler, UStateTreeState, StateTree editor types
 				"PropertyBindingUtils",    // For FPropertyBindingBindableStructDescriptor (base of FStateTreeBindableStructDesc)
