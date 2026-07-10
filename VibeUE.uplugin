@@ -64,6 +64,14 @@
 			"Enabled": true
 		},
 		{
+			"Name": "GeometryCollectionPlugin",
+			"Enabled": true
+		},
+		{
+			"Name": "DataflowAgent",
+			"Enabled": true
+		},
+		{
 			"Name": "StateTree",
 			"Enabled": true
 		},
